@@ -1,0 +1,9 @@
+hosts:
+  - number: 1
+    name: "Single"
+  - number: 2
+    name: "Double"
+  - number: 3
+    name: "Triple"
+  - number: 4
+    name: "Famille"
