@@ -9,6 +9,10 @@ authors = [
 ]
 dependencies = [
   "flet[all]>=0.80.1",
+  "httpx",
+  "loguru",
+  "python-dotenv",
+  "fastapi",
 ]
 
 [dependency-groups]
