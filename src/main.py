@@ -1,6 +1,7 @@
 import warnings
 
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -28,6 +29,18 @@ api.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+@api.middleware("http")
+async def log_headers(request: Request, call_next):
+    # Print headers to terminal
+    print(f"--- Incoming Request from {request.client.host} ---")
+    for name, value in request.headers.items():
+        print(f"{name}: {value}")
+    print("--------------------------------------------------")
+    
+    response = await call_next(request)
+    return response
+
 
 def before_main(page: ft.Page):
     page.title = "Hotel Panorama Reservation System"
