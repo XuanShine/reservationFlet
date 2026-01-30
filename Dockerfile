@@ -1,14 +1,17 @@
-# Dockerfile for reservationFlet
+# Dockerfile for reservationFlet with Nginx + SSL
 FROM python:3.14-slim
 
 # Set Python to run unbuffered
 ENV PYTHONUNBUFFERED=1
 
-# 1. Install uv by copying it from the official image
+# 1. Install uv, nginx, and openssl
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
+    nginx \
+    openssl \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Set the working directory
@@ -32,11 +35,35 @@ RUN uv sync
 # 8. Place the virtual environment in the PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 9. Set working directory to src folder for uvicorn
-WORKDIR /app/src
+# 9. Generate self-signed SSL certificate
+RUN mkdir -p /etc/nginx/certs && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/certs/server.key \
+    -out /etc/nginx/certs/server.crt \
+    -subj "/CN=localhost" \
+    -addext "subjectAltName=IP:10.0.0.2,IP:127.0.0.1,DNS:localhost"
 
-# Expose port
-EXPOSE 8303
+# 10. Copy nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Run uvicorn from the src folder
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "65", "--ws-ping-interval", "20"]
+# 11. Create supervisor config to run both nginx and uvicorn
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+\n\
+[program:nginx]\n\
+command=/usr/sbin/nginx -g "daemon off;"\n\
+autostart=true\n\
+autorestart=true\n\
+\n\
+[program:uvicorn]\n\
+command=/app/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --ws auto\n\
+directory=/app/src\n\
+autostart=true\n\
+autorestart=true\n\
+' > /etc/supervisor/conf.d/supervisord.conf
+
+# Expose ports (443 for HTTPS)
+EXPOSE 443
+
+# Run supervisor
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
