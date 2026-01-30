@@ -118,7 +118,7 @@ api.router.lifespan_context = lifespan
 
 api.mount(
     "/", flet_fastapi.app(main, before_main,
-                          web_renderer=ft.WebRenderer.SKWASM),
+                          web_renderer="html"),
 )
 
 app = api
