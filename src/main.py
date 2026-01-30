@@ -1,6 +1,6 @@
 import warnings
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -39,6 +39,20 @@ async def log_headers(request: Request, call_next):
     print("--------------------------------------------------")
     
     response = await call_next(request)
+    return response
+
+@api.middleware("http")
+async def force_no_cache(request: Request, call_next):
+    # Log des headers pour diagnostic (comme précédemment) [cite: 39, 43]
+    print(f"--- Requête de {request.client.host} ---")
+    
+    response: Response = await call_next(request)
+    
+    # En-têtes pour briser le cache du navigateur
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     return response
 
 
@@ -126,3 +140,6 @@ app = api
 if __name__ == "__main__":
     # ft.run(main, host="0.0.0.0", port=8000)
     ft.run(main)
+
+
+
