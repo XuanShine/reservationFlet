@@ -27,9 +27,10 @@ api.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    # expose_headers=["*"]
 )
 
+"""
 @api.middleware("http")
 async def log_headers(request: Request, call_next):
     # Print headers to terminal
@@ -54,7 +55,7 @@ async def force_no_cache(request: Request, call_next):
     response.headers["Expires"] = "0"
     
     return response
-
+"""
 
 def before_main(page: ft.Page):
     page.title = "Hotel Panorama Reservation System"
@@ -132,7 +133,7 @@ api.router.lifespan_context = lifespan
 
 api.mount(
     "/", flet_fastapi.app(main, before_main,
-                          web_renderer=ft.WebRenderer.CANVAS_KIT),
+                          web_renderer=ft.WebRenderer.AUTO),
 )
 
 app = api
