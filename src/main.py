@@ -1,6 +1,7 @@
 import warnings
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from loguru import logger
@@ -18,6 +19,14 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 load_dotenv()
 
 api = FastAPI()
+
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Or specify domains: ["https://yourdomain.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def before_main(page: ft.Page):
     page.title = "Hotel Panorama Reservation System"
