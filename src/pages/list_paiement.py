@@ -14,8 +14,11 @@ from fastapi.concurrency import run_in_threadpool
 from loguru import logger
 
 from .views.menu import appbar
-from api_stancer import get_payment_intents
-from shared.schemas import PaymentIntentStancerSchema
+from api_stancer import get_payment_intents, list_customers
+try:
+    from shared.schemas import PaymentIntentStancerSchema
+except ImportError:
+    from schemas import PaymentIntentStancerSchema
 
 load_dotenv()
 
@@ -32,6 +35,7 @@ class List_Paiements(ft.View):
         
         self.loader = ft.ProgressRing(width=20, height=20, stroke_width=4)
         self.payments_list = []
+        self.customers_cache = {}  # Cache: customer_id -> customer_name
         
         # Add payment button
         self.add_button = ft.ElevatedButton(
@@ -111,8 +115,8 @@ class List_Paiements(ft.View):
                 logger.warning(f"Error formatting date: {e}")
                 created_formatted = str(created_at)
         
-        # Customer info (customer is just an ID string, not an object)
-        customer_name = customer_id or ""
+        # Customer info - lookup name from cache
+        customer_name = self.customers_cache.get(customer_id, "") if customer_id else ""
         
         # Status color - PaymentIntent statuses differ from Payment statuses
         if not payment.status or payment.status in ["require_payment_method", "require_authentication", "require_authorization"]:
@@ -176,6 +180,14 @@ class List_Paiements(ft.View):
         """Load payments from API"""
         # TODO: class of ft.Card to refresh independently the status
         self.loader.visible = True
+        
+        # Load customers list and build cache
+        try:
+            customers_list = await run_in_threadpool(list_customers)
+            self.customers_cache = {c.id: c.name for c in customers_list}
+        except Exception as e:
+            logger.warning(f"Error loading customers: {e}")
+            self.customers_cache = {}
         
         self.payments_list = await run_in_threadpool(get_payment_intents)
         self.loader.visible = False
