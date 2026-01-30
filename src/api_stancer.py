@@ -1,3 +1,4 @@
+# ruff: noqa: F405
 import os
 import httpx
 from loguru import logger
@@ -5,9 +6,11 @@ import stancer
 import datetime
 from dotenv import load_dotenv
 try:
-    from shared.schemas import *
+    from shared.schemas import *  # noqa: F403
 except ImportError:
-    from schemas import *
+    from schemas import *  # noqa: F403
+
+
 
 load_dotenv(override=True)
 
