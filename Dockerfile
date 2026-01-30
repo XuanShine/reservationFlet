@@ -46,20 +46,30 @@ RUN mkdir -p /etc/nginx/certs && \
 # 10. Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# 11. Create supervisor config to run both nginx and uvicorn
+# 11. Create supervisor config to run both nginx and uvicorn with logs to stdout
 RUN echo '[supervisord]\n\
 nodaemon=true\n\
+logfile=/dev/null\n\
+logfile_maxbytes=0\n\
 \n\
 [program:nginx]\n\
 command=/usr/sbin/nginx -g "daemon off;"\n\
 autostart=true\n\
 autorestart=true\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
 \n\
 [program:uvicorn]\n\
-command=/app/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --ws auto\n\
+command=/app/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --ws auto --log-level info\n\
 directory=/app/src\n\
 autostart=true\n\
 autorestart=true\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
 ' > /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports (443 for HTTPS)
