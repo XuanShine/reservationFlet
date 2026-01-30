@@ -30,6 +30,14 @@ api.add_middleware(
     # expose_headers=["*"]
 )
 
+@api.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Required for SharedArrayBuffer and other modern browser features
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    return response
+
 """
 @api.middleware("http")
 async def log_headers(request: Request, call_next):

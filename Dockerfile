@@ -32,48 +32,57 @@ COPY . .
 # 7. Final sync to install the project
 RUN uv sync
 
+
+
+
 # 8. Place the virtual environment in the PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
 # 9. Generate self-signed SSL certificate
-RUN mkdir -p /etc/nginx/certs && \
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/certs/server.key \
-    -out /etc/nginx/certs/server.crt \
-    -subj "/CN=localhost" \
-    -addext "subjectAltName=IP:10.0.0.2,IP:127.0.0.1,DNS:localhost"
+# RUN mkdir -p /etc/nginx/certs && \
+#     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#     -keyout /etc/nginx/certs/server.key \
+#     -out /etc/nginx/certs/server.crt \
+#     -subj "/CN=localhost" \
+#     -addext "subjectAltName=IP:10.0.0.2,IP:127.0.0.1,DNS:localhost"
 
 # 10. Copy nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+# COPY nginx.conf /etc/nginx/nginx.conf
 
-# 11. Create supervisor config to run both nginx and uvicorn with logs to stdout
-RUN echo '[supervisord]\n\
-nodaemon=true\n\
-logfile=/dev/null\n\
-logfile_maxbytes=0\n\
-\n\
-[program:nginx]\n\
-command=/usr/sbin/nginx -g "daemon off;"\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/dev/stdout\n\
-stdout_logfile_maxbytes=0\n\
-stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0\n\
-\n\
-[program:uvicorn]\n\
-command=/app/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --ws auto --log-level info\n\
-directory=/app/src\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/dev/stdout\n\
-stdout_logfile_maxbytes=0\n\
-stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0\n\
-' > /etc/supervisor/conf.d/supervisord.conf
+# # 11. Create supervisor config to run both nginx and uvicorn with logs to stdout
+# RUN echo '[supervisord]\n\
+# nodaemon=true\n\
+# logfile=/dev/null\n\
+# logfile_maxbytes=0\n\
+# \n\
+# [program:nginx]\n\
+# command=/usr/sbin/nginx -g "daemon off;"\n\
+# autostart=true\n\
+# autorestart=true\n\
+# stdout_logfile=/dev/stdout\n\
+# stdout_logfile_maxbytes=0\n\
+# stderr_logfile=/dev/stderr\n\
+# stderr_logfile_maxbytes=0\n\
+# \n\
+# [program:uvicorn]\n\
+# command=/app/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --ws auto --log-level info\n\
+# directory=/app/src\n\
+# autostart=true\n\
+# autorestart=true\n\
+# stdout_logfile=/dev/stdout\n\
+# stdout_logfile_maxbytes=0\n\
+# stderr_logfile=/dev/stderr\n\
+# stderr_logfile_maxbytes=0\n\
+# ' > /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports (443 for HTTPS)
-EXPOSE 443
+# EXPOSE 443
 
 # Run supervisor
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+
+WORKDIR /app/src
+# 7.5 Utilisation de OPENSSL sans nginx
+RUN openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365 -subj "/C=FR/ST=PACA/L=Grasse/O=Dev/OU=Local/CN=10.0.0.2"
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "key.pem", "--ssl-certfile", "cert.pem"]
