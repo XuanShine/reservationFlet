@@ -1,59 +1,104 @@
-from flet import Text, TextField, FloatingActionButton, Checkbox
-# Layout
-from flet import Column, Row
-from flet import DatePickerEntryMode, KeyboardType, ScrollMode
+import warnings
 
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from loguru import logger
 import flet as ft
-# Colors
-from flet import Colors
+import flet.fastapi as flet_fastapi
+from dotenv import load_dotenv
 
-from TodoApp import TodoApp
-from SelectRoom import SelectRoom
-from Recherche import Recherche
-    
-class Reservation(Column):
-    def __init__(self, page, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.page = page
-        
-        self.recherche = Recherche(up_parent=self, page=page)
-        self.selectRoom = SelectRoom(up_parent=self, page=page, visible=False)
-        
-        self.controls = [
-            self.recherche,
-            self.selectRoom
-        ]
-    
-    async def show_room(self, checkIn_dt, checkOut_dt):
-        await self.selectRoom.fetch_data_async(checkIn_dt, checkOut_dt)
-        
+from pages.home import Home_Page
+from pages.paiement_detail import Paiement_Detail
+from pages.list_paiement import List_Paiements
+from pages.add_paiement import Add_Paiement
+from pages.reservation import Reservation
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+load_dotenv()
+
+api = FastAPI()
+
+def before_main(page: ft.Page):
+    page.title = "Hotel Panorama Reservation System"
+    page.theme_mode = ft.ThemeMode.LIGHT
+
 
 async def main(page: ft.Page):
-    page.title = "Test Application"
-
+    page.title = "Routes Example"
     page.theme_mode = ft.ThemeMode.LIGHT
-    
-    page.window.width = 800
-    page.window.height = 800
-    page.window.center()
-    page.scroll = ScrollMode.AUTO
-    
-    page.locale_configuration = ft.LocaleConfiguration(
-        supported_locales=[
-            ft.Locale("de", "DE"),  # German, Germany
-            ft.Locale("fr", "FR"),  # French, France
-            ft.Locale("es"),        # Spanish
-        ],
-        current_locale=ft.Locale("fr", "FR"),
-    )
-    
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    
-    # todo = TodoApp()
-    
-    reservation = Reservation(page=page)
-    
-    page.add(reservation)
 
+    print("Initial route:", page.route)
+
+    async def open_settings(e):
+        await page.push_route("/settings")
+
+    def route_change():
+        print("Route change:", page.route)
+        page.views.clear()
+        # BEGIN
+        # page.views.append(
+        #     # Register_Client_List(route="/")
+        #     # Register_Client(route="/new")
+        #     Register_Client(route="/tablet", actif=True)
+        # )
+        logger.debug(f"Route changed to: {page.route}")
+        if page.route == "/":
+            page.views.append(
+                Home_Page(route="/")
+            )
+        elif page.route == "/paiement":
+            page.views.append(
+                List_Paiements(route="/paiement")
+            )
+        elif page.route.startswith("/paiement/"):
+            paiement_id = page.route.split("/paiement/")[1]
+            page.views.append(
+                List_Paiements(route="/paiement")
+            )
+            page.views.append(
+                Paiement_Detail(route=page.route, paiement_id=paiement_id)
+            )
+        elif page.route == "/add_paiement":
+            page.views.append(
+                List_Paiements(route="/paiement")
+            )
+            page.views.append(
+                Add_Paiement(route="/add_paiement")
+            )
+        elif page.route == "/reservation":
+            page.views.append(
+                Reservation(route="/reservation", actif=False)
+            )
+        page.update()
+
+    async def view_pop(e):
+        if e.view is not None:
+            print("View pop:", e.view)
+            page.views.remove(e.view)
+            top_view = page.views[-1]
+            await page.push_route(top_view.route)
+
+    page.on_route_change = route_change
+    page.on_view_pop = view_pop
+
+    route_change()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await flet_fastapi.app_manager.start()
+    yield
+    await flet_fastapi.app_manager.shutdown()
+
+api.router.lifespan_context = lifespan
+
+api.mount(
+    "/", flet_fastapi.app(main, before_main),
+)
+
+app = api
+    
 if __name__ == "__main__":
-    ft.app(main)
+    # ft.run(main, host="0.0.0.0", port=8000)
+    ft.run(main)
