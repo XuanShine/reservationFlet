@@ -33,6 +33,8 @@ elif os.getenv("ENVIRONMENT") == "dev":
 else:
     raise Exception("ENVIRONMENT variable not set to 'dev' or 'prod'")
 
+HEADER_DEFAULT = {'Authorization': AUTH_BEARER, 'Content-Type': 'application/json'}
+
 
 def get_customer(id=None, name=None, email=None, phone=None) -> CustomerStancerSchema:
     """
@@ -40,7 +42,7 @@ def get_customer(id=None, name=None, email=None, phone=None) -> CustomerStancerS
     """
     if id:
         response = httpx.get(f'https://api.stancer.com/v2/customers/{id}',
-                             headers={'Authorization': AUTH_BEARER})
+                             headers=HEADER_DEFAULT)
         return CustomerStancerSchema.model_validate(response.json())
     
     new_customer = stancer.Customer()
@@ -78,24 +80,24 @@ def get_customer(id=None, name=None, email=None, phone=None) -> CustomerStancerS
 
 def list_customers(limit=100) -> CustomerListStancerSchema:
     response = httpx.get('https://api.stancer.com/v2/customers/',
-                     headers={'Authorization': f'Bearer {SECRET_KEY_STANCER}'}, params={'limit': limit})
+                     headers=HEADER_DEFAULT, params={'limit': limit})
 
     customers = response.json()
     return CustomerListStancerSchema.model_validate(customers)
 
 def get_payment(payment_id:str) -> PaymentStancerSchema:
     response = httpx.get(f'https://api.stancer.com/v2/payments/{payment_id}',
-                         headers={'Authorization': AUTH_BEARER})
+                         headers=HEADER_DEFAULT)
     return PaymentStancerSchema.model_validate(response.json())
 
 def get_payment_intents(limit=10) -> PaymentIntentListStancerSchema:
     response = httpx.get('https://api.stancer.com/v2/payment_intents/',
-                         headers={'Authorization': AUTH_BEARER}, params={'limit': limit})
+                         headers=HEADER_DEFAULT, params={'limit': limit})
     return PaymentIntentListStancerSchema.model_validate(response.json())
 
 def get_payment_intent(payment_intent_id:str) -> PaymentIntentDetailsSchema:
     response = httpx.get(f'https://api.stancer.com/v2/payment_intents/{payment_intent_id}',
-                         headers={'Authorization': AUTH_BEARER})
+                         headers=HEADER_DEFAULT)
     paymentIntentSchema = PaymentIntentStancerSchema.model_validate(response.json())
     
     customer = get_customer(id=paymentIntentSchema.customer) if paymentIntentSchema.customer else None
@@ -115,7 +117,7 @@ def update_payment_intent(payment_intent_id:str, amount:int=None,description:str
         payload["amount"] = amount
 
     response = httpx.patch(f'https://api.stancer.com/v2/payment_intents/{payment_intent_id}',
-                          headers={'Authorization': AUTH_BEARER, 'Content-Type': 'application/json'},
+                          headers=HEADER_DEFAULT,
                           json=payload)
     return PaymentIntentStancerSchema.model_validate(response.json())
 
@@ -131,6 +133,6 @@ def create_payment_intent(amount:int, description:str, customer_id:str=None, ret
         payload["return_url"] = return_url
 
     response = httpx.post('https://api.stancer.com/v2/payment_intents/',
-                          headers={'Authorization': AUTH_BEARER, 'Content-Type': 'application/json'},
+                          headers=HEADER_DEFAULT,
                           json=payload)
     return PaymentIntentStancerSchema.model_validate(response.json())
