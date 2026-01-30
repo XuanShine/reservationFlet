@@ -39,4 +39,4 @@ WORKDIR /app/src
 EXPOSE 8303
 
 # Run uvicorn from the src folder
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--interface", "asgi3", "--ws", "auto"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "65", "--ws-ping-interval", "20"]

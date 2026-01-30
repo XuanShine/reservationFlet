@@ -117,7 +117,8 @@ async def lifespan(app: FastAPI):
 api.router.lifespan_context = lifespan
 
 api.mount(
-    "/", flet_fastapi.app(main, before_main),
+    "/", flet_fastapi.app(main, before_main,
+                          web_renderer=ft.WebRenderer.HTML),
 )
 
 app = api
